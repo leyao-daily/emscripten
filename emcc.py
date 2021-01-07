@@ -1484,6 +1484,8 @@ def phase_linker_setup(options, state, newargs, settings_map):
       assert not settings.EXPORTED_FUNCTIONS
       settings.EXPORTED_FUNCTIONS = ['_main']
 
+  settings.EXPORTED_FUNCTIONS += ['_exit']
+
   if settings.STANDALONE_WASM:
     # In STANDALONE_WASM mode we either build a command or a reactor.
     # See https://github.com/WebAssembly/WASI/blob/main/design/application-abi.md

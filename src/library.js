@@ -152,23 +152,6 @@ LibraryManager.library = {
     return -1;
   },
 
-  exit__sig: 'vi',
-  exit: function(status) {
-#if MINIMAL_RUNTIME
-    throw 'exit(' + status + ')';
-#else
-    // void _exit(int status);
-    // http://pubs.opengroup.org/onlinepubs/000095399/functions/exit.html
-    exit(status);
-#endif
-  },
-
-  _exit__sig: 'vi',
-  _exit: 'exit',
-
-  _Exit__sig: 'vi',
-  _Exit: 'exit',
-
 #if MINIMAL_RUNTIME
   $exit: function(status) {
     throw 'exit(' + status + ')';
@@ -435,31 +418,6 @@ LibraryManager.library = {
   _ZSt9terminatev: function() {
     _exit(-1234);
   },
-
-#if MINIMAL_RUNTIME && !EXIT_RUNTIME
-  atexit__sig: 'v', // atexit unsupported in MINIMAL_RUNTIME
-  atexit: function(){},
-  __cxa_atexit: function(){},
-#else
-  atexit__proxy: 'sync',
-  atexit__sig: 'iii',
-  atexit: function(func, arg) {
-#if EXIT_RUNTIME
-    __ATEXIT__.unshift({ func: func, arg: arg });
-#endif
-  },
-  __cxa_atexit: 'atexit',
-
-#endif
-
-  // used in rust, clang when doing thread_local statics
-#if USE_PTHREADS
-  __cxa_thread_atexit: 'pthread_cleanup_push',
-  __cxa_thread_atexit_impl: 'pthread_cleanup_push',
-#else
-  __cxa_thread_atexit: 'atexit',
-  __cxa_thread_atexit_impl: 'atexit',
-#endif
 
   // TODO: There are currently two abort() functions that get imported to asm module scope: the built-in runtime function abort(),
   // and this function _abort(). Remove one of these, importing two functions for the same purpose is wasteful.

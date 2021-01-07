@@ -103,6 +103,7 @@ function ExitStatus(status) {
 }
 
 var calledMain = false;
+var implicitExit = false;
 
 #if STANDALONE_WASM && MAIN_READS_PARAMS
 var mainArgs = undefined;
@@ -190,8 +191,21 @@ function callMain(args) {
     assert(ret == 0, '_emscripten_proxy_main failed to start proxy thread: ' + ret);
 #endif
 #else
+    //console.error("implicitExit!");
+    implicitExit = true;
+#if '_exit' in IMPLEMENTED_FUNCTIONS
+    emExit(ret);
+#else
     // if we're not running an evented main loop, it's time to exit
     exit(ret, /* implicit = */ true);
+    if (noExitRuntime) {
+      //console.error("calling emExit");
+      emExit(ret);
+    } else {
+      //console.error("calling C exit");
+      _exit(ret);
+    }
+#endif
   }
   catch (e) {
     // Certain exception types we do not treat as errors since they are used for
@@ -373,14 +387,8 @@ function checkUnflushedContent() {
   out = err = function(x) {
     has = true;
   }
+  //console.error("checkUnflushedContent");
   try { // it doesn't matter if it fails
-#if SYSCALLS_REQUIRE_FILESYSTEM == 0
-    var flush = {{{ '$flush_NO_FILESYSTEM' in addedLibraryItems ? 'flush_NO_FILESYSTEM' : 'null' }}};
-    if (flush) flush();
-#else
-    var flush = Module['_fflush'];
-    if (flush) flush(0);
-#endif
 #if '$FS' in addedLibraryItems && '$TTY' in addedLibraryItems
     // also flush in the JS FS layer
     ['stdout', 'stderr'].forEach(function(name) {
@@ -407,10 +415,9 @@ function checkUnflushedContent() {
 #endif // EXIT_RUNTIME
 #endif // ASSERTIONS
 
-/** @param {boolean|number=} implicit */
-function exit(status, implicit) {
+function emExit(status) {
+  //console.error('emExit');
   EXITSTATUS = status;
-
 #if ASSERTIONS
 #if EXIT_RUNTIME == 0
   checkUnflushedContent();
@@ -426,10 +433,10 @@ function exit(status, implicit) {
   }
 
 #if USE_PTHREADS
-  if (!implicit) {
+  if (!implicitExit) {
     if (ENVIRONMENT_IS_PTHREAD) {
 #if ASSERTIONS
-      err('Pthread 0x' + _pthread_self().toString(16) + ' called exit(), posting exitProcess.');
+      err('Pthread 0x' + _pthread_self().toString(16) + ' called emExit(), posting exitProcess.');
 #endif
       // When running in a pthread we propagate the exit back to the main thread
       // where it can decide if the whole process should be shut down or not.
@@ -439,7 +446,7 @@ function exit(status, implicit) {
       throw new ExitStatus(status);
     } else {
 #if ASSERTIONS
-      err('main thread called exit: keepRuntimeAlive=' + keepRuntimeAlive() + ' (counter=' + runtimeKeepaliveCounter + ')');
+      err('main thread called emExit: keepRuntimeAlive=' + keepRuntimeAlive() + ' (counter=' + runtimeKeepaliveCounter + ')');
 #endif
     }
   }
@@ -447,8 +454,8 @@ function exit(status, implicit) {
 
   if (keepRuntimeAlive()) {
 #if ASSERTIONS
-    // if exit() was called, we may warn the user if the runtime isn't actually being shut down
-    if (!implicit) {
+    // if emExit() was called, we may warn the user if the runtime isn't actually being shut down
+    if (!implicitExit) {
 #if EXIT_RUNTIME == 0
       var msg = 'program exited (with status: ' + status + '), but EXIT_RUNTIME is not set, so halting execution but not exiting the runtime or preventing further async execution (build with EXIT_RUNTIME=1, if you want a true shutdown)';
 #else
@@ -467,6 +474,7 @@ function exit(status, implicit) {
 
     exitRuntime();
 
+    //console.error('calling onExit');
 #if expectToReceiveOnModule('onExit')
     if (Module['onExit']) Module['onExit'](status);
 #endif
@@ -474,6 +482,7 @@ function exit(status, implicit) {
     ABORT = true;
   }
 
+  //console.error('calling quit_');
   quit_(status, new ExitStatus(status));
 }
 

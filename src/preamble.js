@@ -422,7 +422,9 @@ function exitRuntime() {
   if (ENVIRONMENT_IS_PTHREAD) return; // PThreads reuse the runtime from the main thread.
 #endif
 #if EXIT_RUNTIME
+  console.error(__ATEXIT__);
   callRuntimeCallbacks(__ATEXIT__);
+  //console.error('done exit callbacks');
   <<< ATEXITS >>>
 #if USE_PTHREADS
   PThread.runExitHandlers();

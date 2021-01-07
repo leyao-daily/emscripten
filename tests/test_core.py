@@ -7285,11 +7285,14 @@ someweirdtext
           printf("in Global()\n");
           if (testPre) { EM_ASM(noExitRuntime = true;); }
         }
-        ~Global() { printf("ERROR: in ~Global()\n"); }
+        ~Global() {
+          printf("ERROR: in ~Global()\n");
+        }
       } global;
       int main() {
         if (!testPre) { EM_ASM(noExitRuntime = true;); }
         printf("in main()\n");
+        return 0;
       }
     '''
     self.do_run(src.replace('TEST_PRE', '0'), 'in Global()\nin main()')
