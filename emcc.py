@@ -1802,7 +1802,6 @@ def phase_linker_setup(options, state, newargs, settings_map):
     # In non-MINIMAL_RUNTIME, the core runtime depends on these functions to be present. (In MINIMAL_RUNTIME, they are
     # no longer always bundled in)
     settings.DEFAULT_LIBRARY_FUNCS_TO_INCLUDE += [
-      '$keepRuntimeAlive',
       '$demangle',
       '$demangleAll',
       '$jsStackTrace',
@@ -1919,9 +1918,6 @@ def phase_linker_setup(options, state, newargs, settings_map):
 
     include_and_export('establishStackSpace')
     include_and_export('invokeEntryPoint')
-    if not settings.MINIMAL_RUNTIME:
-      # noExitRuntime does not apply to MINIMAL_RUNTIME.
-      include_and_export('keepRuntimeAlive')
 
     if settings.MODULARIZE:
       if not settings.EXPORT_ES6 and settings.EXPORT_NAME == 'Module':

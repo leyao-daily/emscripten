@@ -20,6 +20,12 @@ See docs/process.md for more on how version tagging works.
 
 2.0.25
 ------
+- By default (unless `EXIT_RUNTIME=1` is specified) emscripten programs running
+  under node will no longer call `process.exit()` on `exit()`.  Instead they
+  will simply unwind the stack return to the event loop, much like they do
+  on the web.  In many cases the node process will still exit naturally if
+  there is nothing keeping the event loop going.  To guarantee that the node
+  process exits immediately please build with `EXIT_RUNTIME=1`.
 - Drop support for node versions older than v5.10.0.  We now assume the
   existence of `Buffer.from` which was added in v5.10.0.  If it turns out
   there is still a need to support these older node versions we can
